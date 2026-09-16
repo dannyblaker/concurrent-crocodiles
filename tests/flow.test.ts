@@ -165,3 +165,27 @@ describe("navOrder", () => {
     expect(order).toEqual(["a", "b"]);
   });
 });
+
+describe("layoutFlow with node heights", () => {
+  it("moves what is stacked under a taller task down by the difference", () => {
+    const tasks = [
+      makeTask({ id: "tall", order: 1 }),
+      makeTask({ id: "under", order: 2 }),
+      makeTask({ id: "last", order: 3 }),
+    ];
+    const plain = layoutFlow(tasks);
+    const grown = layoutFlow(tasks, new Map([["tall", FLOW.NODE_H + 50]]));
+    expect(grown.get("tall")).toEqual(plain.get("tall"));
+    expect(grown.get("under")!.y).toBe(plain.get("under")!.y + 50);
+    expect(grown.get("last")!.y).toBe(plain.get("last")!.y + 50);
+  });
+
+  it("leaves other columns alone", () => {
+    const tasks = [
+      makeTask({ id: "a", order: 1 }),
+      makeTask({ id: "b", order: 2, dependsOn: ["a"] }),
+    ];
+    const grown = layoutFlow(tasks, new Map([["a", FLOW.NODE_H + 80]]));
+    expect(grown.get("b")).toEqual(layoutFlow(tasks).get("b"));
+  });
+});

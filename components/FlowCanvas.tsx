@@ -1,7 +1,7 @@
 "use client";
 
 import { FlowPos, layoutFlow } from "@/lib/flow";
-import { useFlowMotion } from "@/lib/flow-motion";
+import { MOVE_MS, useFlowMotion } from "@/lib/flow-motion";
 import { statuses } from "@/lib/graph";
 import {
   DONE_COLOR,
@@ -11,7 +11,7 @@ import {
   STATUS_LABEL,
   Task,
 } from "@/lib/types";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import CrocShape, { BACK, DONE_AT } from "./CrocShape";
 import DoneButton from "./DoneButton";
 import SweepCountdown from "./SweepCountdown";
@@ -59,6 +59,11 @@ interface Props {
  * where everything is: positions are a function of the tasks (see layoutFlow),
  * so the same graph draws the same board here, in the share view and in an
  * export, and nothing has to be stored or kept in step.
+ *
+ * The one thing the graph doesn't know is how much room a title takes. A node
+ * shows the whole of its text, so it is as tall as the text needs, and that is
+ * measured off the label once it is in the DOM and handed back to the layout —
+ * which stacks the column accordingly. See `heights` below.
  */
 export default function FlowCanvas({
   tasks,
@@ -90,17 +95,70 @@ export default function FlowCanvas({
   const byId = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
   const statusOfId = useMemo(() => statuses(tasks), [tasks]);
 
+  // ── node heights ───────────────────────────────────────────────
+  //
+  // How tall each task is: its label, plus the crocodile around it, and never
+  // less than NODE_H. Read off the DOM after every render that could have
+  // changed a label, synchronously so the corrected layout paints instead of
+  // the guessed one; and watched after that, for the font arriving late.
+  const labelRefs = useRef(new Map<string, HTMLDivElement>());
+  // `snap` comes with the first measurement and is cleared once drawn: the
+  // layout it brings is taken up in place rather than slid into, because
+  // nothing has been on screen yet for a task to slide from
+  const [heights, setHeights] = useState<{
+    of: Map<string, number>;
+    snap: boolean;
+  }>({ of: new Map(), snap: false });
+  const heightOf = (t: Task) => heights.of.get(t.id) ?? NODE_H;
+
+  const measure = useCallback(() => {
+    setHeights((was) => {
+      let changed = was.of.size !== labelRefs.current.size;
+      const next = new Map<string, number>();
+      for (const [id, el] of labelRefs.current) {
+        const h = Math.max(
+          NODE_H,
+          Math.ceil(el.offsetHeight + BACK.top + BACK.bottom)
+        );
+        next.set(id, h);
+        if (was.of.get(id) !== h) changed = true;
+      }
+      return changed ? { of: next, snap: !was.of.size } : was;
+    });
+  }, []);
+  // `goals` and `sweepAt` are there because they change what the label says
+  useLayoutEffect(measure, [measure, tasks, goals, sweepAt]);
+  useLayoutEffect(() => {
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    for (const el of labelRefs.current.values()) ro.observe(el);
+    return () => ro.disconnect();
+    // re-observed whenever the set of labels can have changed
+  }, [measure, tasks]);
+
   // where the graph says everything belongs, and where it has got to on the way
-  const layout = useFlowMotion(useMemo(() => layoutFlow(tasks), [tasks]));
+  const layout = useFlowMotion(
+    useMemo(() => layoutFlow(tasks, heights.of), [tasks, heights.of]),
+    MOVE_MS,
+    heights.snap
+  );
+  // consumed: the next layout is a move like any other. Adjusted during render
+  // (like `createFrom` below) so no frame is drawn with the flag still up.
+  if (heights.snap) setHeights({ of: heights.of, snap: false });
+  // the board is as tall as it needs to be, and at least what it always was
+  const boardH = Math.max(
+    H,
+    ...tasks.map((t) => (layout.get(t.id)?.y ?? 0) + heightOf(t) + 40)
+  );
 
   const pos = (t: Task): FlowPos => layout.get(t.id) ?? { x: 0, y: 0 };
   const outAnchor = (t: Task) => {
     const p = pos(t);
-    return { x: p.x + NODE_W, y: p.y + NODE_H / 2 };
+    return { x: p.x + NODE_W, y: p.y + heightOf(t) / 2 };
   };
   const inAnchor = (t: Task) => {
     const p = pos(t);
-    return { x: p.x, y: p.y + NODE_H / 2 };
+    return { x: p.x, y: p.y + heightOf(t) / 2 };
   };
   const canvasPoint = (clientX: number, clientY: number) => {
     const r = canvasRef.current!.getBoundingClientRect();
@@ -116,11 +174,12 @@ export default function FlowCanvas({
     const x = p.x + NODE_W + 60;
     const column = tasks
       .filter((o) => o.id !== t.id)
-      .map(pos)
+      .map((o) => ({ ...pos(o), h: heightOf(o) }))
       .filter((q) => Math.abs(q.x - x) < NODE_W);
     let y = p.y;
-    while (column.some((q) => Math.abs(q.y - y) < NODE_H + 12) && y < H - NODE_H)
-      y += NODE_H + 28;
+    const clear = () =>
+      column.every((q) => y + NODE_H + 12 <= q.y || q.y + q.h + 12 <= y);
+    while (!clear() && y < boardH - NODE_H) y += NODE_H + 28;
     return { x, y };
   };
 
@@ -130,7 +189,7 @@ export default function FlowCanvas({
     setCreating({
       pos: {
         x: Math.max(0, Math.min(W - 260, p.x)),
-        y: Math.max(0, Math.min(H - 60, p.y)),
+        y: Math.max(0, Math.min(boardH - 60, p.y)),
       },
       dependsOn,
     });
@@ -270,7 +329,7 @@ export default function FlowCanvas({
         onPointerDown={onCanvasPointerDown}
         onDoubleClick={onCanvasDoubleClick}
         className="croc-water relative bg-background cursor-grab"
-        style={{ width: W, height: H }}
+        style={{ width: W, height: boardH }}
       >
         {/* the water, when the canvas is dressed as water — see globals.css */}
         <WaterSurface />
@@ -279,7 +338,7 @@ export default function FlowCanvas({
         <svg
           className="absolute inset-0"
           width={W}
-          height={H}
+          height={boardH}
           style={{ pointerEvents: "none" }}
         >
           <defs>
@@ -380,43 +439,48 @@ export default function FlowCanvas({
                 left: p.x,
                 top: p.y,
                 width: NODE_W,
-                height: NODE_H,
+                height: heightOf(t),
                 touchAction: "none",
                 ["--croc-tail-fill" as string]: done
                   ? DONE_COLOR
                   : PRIORITY_COLOR[t.priority],
               }}
             >
-              <CrocShape status={status} done={done} />
+              <CrocShape status={status} done={done} height={heightOf(t)} />
 
-              {/* the label, on the flat of its back */}
+              {/* the label, on the flat of its back. It is as tall as its text
+                  and nothing is clipped: the node is sized from it (see
+                  `measure`), so the crocodile grows around a long title rather
+                  than cutting it short. */}
               <div
-                className="absolute overflow-hidden"
+                ref={(el) => {
+                  if (el) labelRefs.current.set(t.id, el);
+                  else labelRefs.current.delete(t.id);
+                }}
+                className="absolute"
                 style={{
                   left: BACK.left,
                   right: BACK.right,
                   top: BACK.top,
-                  bottom: BACK.bottom,
                 }}
               >
                 <div
-                  className={`text-label font-medium truncate ${
+                  className={`text-label font-medium break-words ${
                     done ? "line-through text-slate-500" : "text-slate-100"
                   }`}
                 >
                   {t.title}
                 </div>
-                {/* one line, goal included: a crocodile's back is only so long,
-                    and a third row of small print runs off the end of it.
+                {/* the small print wraps onto as many rows as it needs.
                     `empty:hidden` so a task with nothing to say drops the row
                     rather than leaving a gap under its title. */}
-                <div className="text-note text-slate-400 flex gap-1.5 items-center mt-0.5 empty:hidden">
+                <div className="text-note text-slate-400 flex flex-wrap gap-x-1.5 gap-y-0.5 items-center mt-0.5 empty:hidden">
                   {sweepAt?.[t.id] != null && (
                     <SweepCountdown key={sweepAt[t.id]} at={sweepAt[t.id]} />
                   )}
                   {goal && (
                     <span
-                      className="px-1 rounded-full truncate min-w-0"
+                      className="px-1 rounded-full break-words min-w-0"
                       style={{
                         backgroundColor: goal.color + "33",
                         color: goal.color,
@@ -427,7 +491,7 @@ export default function FlowCanvas({
                   )}
                   {t.blocked && (
                     <span
-                      className="text-red-400 truncate min-w-0"
+                      className="text-red-400 break-words min-w-0"
                       title={t.blocked}
                     >
                       ⛔ {t.blocked}
@@ -460,7 +524,7 @@ export default function FlowCanvas({
           <svg
             className="absolute inset-0 pointer-events-none"
             width={W}
-            height={H}
+            height={boardH}
             style={{ zIndex: 40 }}
           >
             {tempEdge && (

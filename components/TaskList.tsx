@@ -70,7 +70,7 @@ function Row({
       />
       <div className="min-w-0 flex-1">
         <div
-          className={`text-body truncate ${
+          className={`text-body break-words ${
             done ? "line-through text-slate-500" : "text-slate-200"
           }`}
         >

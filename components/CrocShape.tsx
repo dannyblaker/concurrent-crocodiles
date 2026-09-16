@@ -4,29 +4,51 @@ const { NODE_W, NODE_H } = FLOW;
 
 /**
  * The crocodile is drawn once, at this size, and every coordinate below is in it.
- * The node it fills is whatever FLOW says, so the drawing is a viewBox stretched
- * to fit rather than a set of numbers to retype: change how big a task is and the
+ * The node it fills is whatever FLOW says, so the drawing is a viewBox scaled to
+ * fit rather than a set of numbers to retype: change how big a task is and the
  * animal, its label and its done button all follow.
+ *
+ * The scale is the same both ways, and it is the width that sets it: a task can
+ * be taller than NODE_H (see `height` below) and a crocodile stretched to a box
+ * comes out as a different, longer-legged animal each time.
  */
 const ART = { W: 240, H: 82 };
-const sx = NODE_W / ART.W;
-const sy = NODE_H / ART.H;
+const MID = 41;
+const s = NODE_W / ART.W;
 
 /**
  * Where the text goes: the flat of the crocodile's back, between the tail and
  * the neck. The card is a silhouette rather than a plain rectangle, so the usable
  * area is smaller than the box and has to be published rather than guessed —
- * FlowCanvas positions the label with it.
+ * FlowCanvas positions the label with it. `top` and `bottom` are what the shape
+ * adds around the text either way, so a node is the label plus those.
  */
 export const BACK = {
-  left: 34 * sx,
-  right: 72 * sx,
-  top: 20 * sy,
-  bottom: 20 * sy,
+  left: 34 * s,
+  right: 72 * s,
+  top: 20 * s,
+  bottom: 20 * s,
 };
 
 /** …and where the done button sits: the bottom corner of that same back. */
-export const DONE_AT = { right: 76 * sx, bottom: 22 * sy };
+export const DONE_AT = { right: 76 * s, bottom: 22 * s };
+
+/**
+ * How a crocodile grows to fit a longer title: it gets fatter, not bigger.
+ *
+ * Everything is mirrored about the midline, so the extra height is a band
+ * inserted along it — the top half of every shape stays put, the bottom half
+ * moves down by `extra`, and the vertical edges between them get longer. The
+ * legs, eyes and mouth keep their size and their stroke, which a stretched
+ * viewBox would not have let them do. Only the shapes that sit *on* the midline
+ * (the mouth, the nostrils) move half way, so they stay in the middle of the
+ * snout however wide it has got.
+ */
+const fatten = (d: string, extra: number) =>
+  d.replace(
+    /([ML]) (-?[\d.]+) (-?[\d.]+)/g,
+    (_, cmd, x, y) => `${cmd} ${x} ${+y > MID ? +y + extra : y}`
+  );
 
 /**
  * A crocodile built out of right angles, drawn so the torso *is* the card.
@@ -78,11 +100,11 @@ const TAIL_PATCH = `M 4 37 L 13 37 L 13 33 L 23 33 L 23 28 L 30 28
  */
 const LIMB = `M -5 2 L -5 -10 L 9 -10 L 9 -6 L 5 -6 L 5 2 Z`;
 
-const HIPS = [
+const hips = (extra: number) => [
   "translate(144 12)",
   "translate(62 12) scale(-1 1)",
-  "translate(144 70) scale(1 -1)",
-  "translate(62 70) scale(-1 -1)",
+  `translate(144 ${70 + extra}) scale(1 -1)`,
+  `translate(62 ${70 + extra}) scale(-1 -1)`,
 ];
 
 /**
@@ -91,8 +113,9 @@ const HIPS = [
  * long, and anything drawn along their two edges instead of down the middle comes
  * out as fringe.
  */
-const MOUTH_SHUT = "M 214 41 h17";
-const MOUTH_TOOTHED = "M 214 39 h4 v4 h4 v-4 h4 v4 h4 v-4 h1";
+const mouthShut = (mid: number) => `M 214 ${mid} h17`;
+const mouthToothed = (mid: number) =>
+  `M 214 ${mid - 2} h4 v4 h4 v-4 h4 v4 h4 v-4 h1`;
 
 /**
  * The jaw hinge: where the head stops being the body. Without it the taper reads
@@ -102,7 +125,8 @@ const MOUTH_TOOTHED = "M 214 39 h4 v4 h4 v-4 h4 v4 h4 v-4 h1";
 const JAW_HINGE = "M 174 12 L 174 70";
 
 /**
- * A crocodile seen from above, at the size of one task.
+ * A crocodile seen from above, at the size of one task — `height` px tall, and
+ * NODE_H when not told otherwise.
  *
  * Fill and outline come from the status the parent publishes as `--node-fill`
  * and `--node-accent` (see globals.css), so the shape is coloured by the graph
@@ -115,41 +139,46 @@ const JAW_HINGE = "M 174 12 L 174 70";
 export default function CrocShape({
   status,
   done,
+  height = NODE_H,
 }: {
   status: TaskStatus;
   done: boolean;
+  height?: number;
 }) {
+  const artH = height / s;
+  const extra = Math.max(0, artH - ART.H);
+  const mid = MID + extra / 2;
   return (
     <svg
       className="croc-shape"
       width={NODE_W}
-      height={NODE_H}
-      viewBox={`0 0 ${ART.W} ${ART.H}`}
+      height={height}
+      viewBox={`0 0 ${ART.W} ${artH}`}
       preserveAspectRatio="none"
       aria-hidden="true"
     >
       {/* legs, then the body over their hips, then the tail's colour */}
-      {HIPS.map((t) => (
+      {hips(extra).map((t) => (
         <path key={t} d={LIMB} transform={t} />
       ))}
-      <path d={OUTLINE} />
-      <path d={TAIL_PATCH} fill="currentColor" stroke="none" />
+      <path d={fatten(OUTLINE, extra)} />
+      <path d={fatten(TAIL_PATCH, extra)} fill="currentColor" stroke="none" />
       <path
-        d={JAW_HINGE}
+        d={fatten(JAW_HINGE, extra)}
         fill="none"
         strokeWidth="1.2"
         strokeDasharray="none"
       />
       <path
-        d={status === "in-progress" ? MOUTH_TOOTHED : MOUTH_SHUT}
+        d={status === "in-progress" ? mouthToothed(mid) : mouthShut(mid)}
         fill="none"
         strokeWidth="1.2"
         strokeDasharray="none"
       />
       {/* nostrils, at the tip where they belong */}
       <g fill="none" strokeWidth="2.4" strokeDasharray="none">
-        <path d="M 226 37 h2" />
-        <path d="M 226 45 h2" />
+        <path d={`M 226 ${mid - 4} h2`} />
+        <path d={`M 226 ${mid + 4} h2`} />
       </g>
       {/*
        * The eyes say the other half of what the colour already says: a finished
@@ -158,12 +187,12 @@ export default function CrocShape({
       {done ? (
         <g fill="none" strokeWidth="2" strokeDasharray="none">
           <path d="M 178 27 h10" />
-          <path d="M 178 55 h10" />
+          <path d={`M 178 ${55 + extra} h10`} />
         </g>
       ) : (
         <g strokeWidth="1" strokeDasharray="none">
           <rect x="178" y="23" width="9" height="8" fill="#f7c243" />
-          <rect x="178" y="51" width="9" height="8" fill="#f7c243" />
+          <rect x="178" y={51 + extra} width="9" height="8" fill="#f7c243" />
           <rect
             x="181.5"
             y="25"
@@ -174,7 +203,7 @@ export default function CrocShape({
           />
           <rect
             x="181.5"
-            y="53"
+            y={53 + extra}
             width="2"
             height="4"
             fill="#14210f"

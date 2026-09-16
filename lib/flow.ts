@@ -9,8 +9,11 @@ export interface FlowPos {
 /** x of the column a task at this dependency depth belongs in. */
 export const columnX = (depth: number) => 40 + depth * (FLOW.NODE_W + 60);
 
-/** y of the nth task stacked in one column. Derived, so a node can grow. */
-export const rowY = (i: number) => 40 + i * (FLOW.NODE_H + 28);
+/** the gap between two tasks stacked in one column */
+export const ROW_GAP = 28;
+
+/** y of the nth task stacked in one column, when every task is the usual height. */
+export const rowY = (i: number) => 40 + i * (FLOW.NODE_H + ROW_GAP);
 
 /**
  * The order the keyboard walks the board: downstream, left to right.
@@ -76,8 +79,16 @@ export function navOrder(tasks: Task[]): string[] {
  * level with the average row of what it waits on, which keeps a chain running
  * straight across instead of stitching between rows. Columns are laid out left
  * to right so that pull always reads positions that are already decided.
+ *
+ * A task is FLOW.NODE_H tall unless `heights` says otherwise: a node grows to
+ * fit its title rather than cutting it short, and whatever is stacked under it
+ * moves down to make room. The heights come from the DOM, so the canvas passes
+ * them in; without them the board is laid out as if every task were one line.
  */
-export function layoutFlow(tasks: Task[]): Map<string, FlowPos> {
+export function layoutFlow(
+  tasks: Task[],
+  heights?: Map<string, number>
+): Map<string, FlowPos> {
   const depths = flowDepths(tasks);
   const urgency = urgencies(tasks);
 
@@ -107,7 +118,11 @@ export function layoutFlow(tasks: Task[]): Map<string, FlowPos> {
         a.priority - b.priority ||
         a.order - b.order
     );
-    column.forEach((t, i) => out.set(t.id, { x: columnX(depth), y: rowY(i) }));
+    let y = rowY(0);
+    for (const t of column) {
+      out.set(t.id, { x: columnX(depth), y });
+      y += (heights?.get(t.id) ?? FLOW.NODE_H) + ROW_GAP;
+    }
   }
   return out;
 }

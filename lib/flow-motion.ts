@@ -43,10 +43,16 @@ const signature = (positions: Map<string, FlowPos>) =>
  * about what just happened. Re-targeting mid-flight is free: the next tween
  * starts from wherever the node has got to, so a second edit during the first
  * second bends the path instead of restarting it.
+ *
+ * `snap` asks for the new positions to be taken up outright, with no move at
+ * all. The canvas uses it for the layout that follows its first measurement of
+ * the nodes, which arrives before anything has been painted: there is nothing on
+ * screen for a task to slide from, so a slide would be a lie of the same kind.
  */
 export function useFlowMotion(
   targets: Map<string, FlowPos>,
-  ms = MOVE_MS
+  ms = MOVE_MS,
+  snap = false
 ): Map<string, FlowPos> {
   const [live, setLive] = useState(targets);
   const [drawn, setDrawn] = useState(() => signature(targets));
@@ -54,12 +60,14 @@ export function useFlowMotion(
 
   if (drawn !== key) {
     setDrawn(key);
-    // the new cast list, each still standing where it was last seen
-    setLive((at) => {
-      const held = new Map(targets);
-      for (const [id, p] of at) if (held.has(id)) held.set(id, p);
-      return held;
-    });
+    if (snap) setLive(targets);
+    // otherwise the new cast list, each still standing where it was last seen
+    else
+      setLive((at) => {
+        const held = new Map(targets);
+        for (const [id, p] of at) if (held.has(id)) held.set(id, p);
+        return held;
+      });
   }
 
   useEffect(() => {
