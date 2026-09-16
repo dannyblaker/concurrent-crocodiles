@@ -54,7 +54,7 @@ Create tasks and their dependencies. Tasks auto-arrange as their priority and st
 ### Presentation
 
 - **Tasks are drawn as crocodiles**, seen from above, rather than as cards bearing a crocodile. Colour is status, the tail is priority, the eyes are open while work remains and closed when it is complete, and the jaws show teeth on startable tasks. `?` opens the legend.
-- **Water canvas** (`w`). The board floats on a still, lit pool, with a ripple crossing it every five to seventeen seconds. The surface is two fields of Perlin noise shaped by SVG filters — no raster images and no `<canvas>`. The toggle switches to a plain dot grid.
+- **Water canvas** (`w`). The board sits on a plain dot grid by default; the toggle floats it on a still, lit pool instead, with a ripple crossing it every five to seventeen seconds. The surface is two fields of Perlin noise shaped by SVG filters — no raster images and no `<canvas>`.
 - **Light and dark themes** (`m`). Follows the operating system preference until a choice is made, then persists per device and is applied before first paint.
 
 ## Requirements

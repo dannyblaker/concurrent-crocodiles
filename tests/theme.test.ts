@@ -75,67 +75,67 @@ describe("setting and toggling", () => {
 });
 
 describe("the canvas preference", () => {
-  it("is water unless the attribute says plain", () => {
-    expect(currentCanvas()).toBe("water");
-    root().dataset.canvas = "plain";
+  it("is plain unless the attribute says water", () => {
     expect(currentCanvas()).toBe("plain");
-    root().dataset.canvas = "puddle";
+    root().dataset.canvas = "water";
     expect(currentCanvas()).toBe("water");
+    root().dataset.canvas = "puddle";
+    expect(currentCanvas()).toBe("plain");
   });
 
   it("stamps the attribute and remembers the choice", () => {
-    setCanvas("plain");
-    expect(root().dataset.canvas).toBe("plain");
-    expect(localStorage.getItem("crocodiles-canvas")).toBe("plain");
+    setCanvas("water");
+    expect(root().dataset.canvas).toBe("water");
+    expect(localStorage.getItem("crocodiles-canvas")).toBe("water");
   });
 
   it("flips back and forth", () => {
     toggleCanvas();
-    expect(currentCanvas()).toBe("plain");
-    toggleCanvas();
     expect(currentCanvas()).toBe("water");
+    toggleCanvas();
+    expect(currentCanvas()).toBe("plain");
   });
 
   it("still changes the canvas when storage is unavailable", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("private mode");
     });
-    expect(() => setCanvas("plain")).not.toThrow();
-    expect(root().dataset.canvas).toBe("plain");
+    expect(() => setCanvas("water")).not.toThrow();
+    expect(root().dataset.canvas).toBe("water");
   });
 });
 
 describe("the pre-paint boot script", () => {
-  it("defaults the canvas to water, and reads a saved plain", () => {
-    runBootScript();
-    expect(root().dataset.canvas).toBe("water");
-
-    localStorage.setItem("crocodiles-canvas", "plain");
+  it("defaults the canvas to plain, and reads a saved water", () => {
     runBootScript();
     expect(root().dataset.canvas).toBe("plain");
-  });
 
-  it("treats junk in the canvas slot as water", () => {
-    localStorage.setItem("crocodiles-canvas", "lava");
+    localStorage.setItem("crocodiles-canvas", "water");
     runBootScript();
     expect(root().dataset.canvas).toBe("water");
+  });
+
+  it("treats junk in the canvas slot as plain", () => {
+    localStorage.setItem("crocodiles-canvas", "lava");
+    runBootScript();
+    expect(root().dataset.canvas).toBe("plain");
   });
 
   it("applies the canvas even when the theme read throws", () => {
     // one preference failing shouldn't cost the other: two try blocks, not one
     vi.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
       if (key === "crocodiles-theme") throw new Error("blocked");
-      return "plain";
+      return "water";
     });
     runBootScript();
-    expect(root().dataset.canvas).toBe("plain");
+    expect(root().dataset.canvas).toBe("water");
   });
 
   it("round-trips with setCanvas: what one writes, the other restores", () => {
-    setCanvas("plain");
+    setCanvas("water");
     root().removeAttribute("data-canvas");
     runBootScript();
-    expect(currentCanvas()).toBe("plain");
+    expect(currentCanvas()).toBe("water");
   });
   it("applies a saved preference", () => {
     localStorage.setItem("crocodiles-theme", "light");

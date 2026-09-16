@@ -20,7 +20,7 @@ export const THEME_SCRIPT = `(function(){var r=document.documentElement;try{var 
   KEY
 )});if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";r.dataset.theme=t}catch(e){}try{r.dataset.canvas=localStorage.getItem(${JSON.stringify(
   CANVAS_KEY
-)})==="plain"?"plain":"water"}catch(e){}try{r.dataset.sweep=localStorage.getItem(${JSON.stringify(
+)})==="water"?"water":"plain"}catch(e){}try{r.dataset.sweep=localStorage.getItem(${JSON.stringify(
   SWEEP_KEY
 )})==="off"?"off":"on"}catch(e){}})()`;
 
@@ -43,9 +43,9 @@ export function toggleTheme() {
   setTheme(currentTheme() === "dark" ? "light" : "dark");
 }
 
-/** Water unless the attribute says otherwise — the swamp is the default. */
+/** Plain unless the attribute says otherwise — the swamp is opt-in. */
 export function currentCanvas(): CanvasStyle {
-  return document.documentElement.dataset.canvas === "plain" ? "plain" : "water";
+  return document.documentElement.dataset.canvas === "water" ? "water" : "plain";
 }
 
 export function setCanvas(style: CanvasStyle) {
@@ -57,9 +57,9 @@ export function setCanvas(style: CanvasStyle) {
   }
 }
 
-/** Flip water ⇄ plain, by exactly the same means as the theme. */
+/** Flip plain ⇄ water, by exactly the same means as the theme. */
 export function toggleCanvas() {
-  setCanvas(currentCanvas() === "water" ? "plain" : "water");
+  setCanvas(currentCanvas() === "plain" ? "water" : "plain");
 }
 
 /**

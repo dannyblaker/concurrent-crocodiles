@@ -21,7 +21,7 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: "on-first-retry",
     /*
-     * The board floats on animated water, and the suite is not here to test it:
+     * The board can float on animated water, and the suite is not here to test it:
      * eight browsers repainting a pool each made pointer timing flaky enough to
      * fail drags that pass on their own. Reduced motion stops the drift and
      * changes nothing else — same markup, same canvas, same everything the tests

@@ -56,11 +56,11 @@ describe("CanvasToggle", () => {
   it("flips the canvas on click", async () => {
     const user = userEvent.setup();
     render(<CanvasToggle />);
-    expect(currentCanvas()).toBe("water");
-    await user.click(screen.getByRole("button", { name: /animated water/i }));
     expect(currentCanvas()).toBe("plain");
     await user.click(screen.getByRole("button", { name: /animated water/i }));
     expect(currentCanvas()).toBe("water");
+    await user.click(screen.getByRole("button", { name: /animated water/i }));
+    expect(currentCanvas()).toBe("plain");
   });
 
   it("renders both glyphs, leaving the choice of which shows to CSS", () => {
