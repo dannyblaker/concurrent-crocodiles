@@ -9,13 +9,13 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   /*
-   * Four, not "half the cores", which is what Playwright picks on its own. Every
-   * worker is a Chromium holding the whole app: four of them peak around 2GB
-   * resident between them, and the default of eight took enough memory to start
-   * failing pointer drags that pass on their own. Raise it with E2E_WORKERS if
-   * your machine has the room.
+   * One, not "half the cores", which is what Playwright picks on its own. Every
+   * worker is a Chromium holding the whole app, and four of them running
+   * alongside the dev server were enough to take a machine down. One worker
+   * gets through the suite in well under a minute anyway. Raise it with
+   * E2E_WORKERS if your machine has the room.
    */
-  workers: process.env.CI ? 1 : Number(process.env.E2E_WORKERS ?? 4),
+  workers: process.env.CI ? 1 : Number(process.env.E2E_WORKERS ?? 1),
   reporter: process.env.CI ? "line" : "list",
   use: {
     baseURL: BASE_URL,

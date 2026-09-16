@@ -14,7 +14,7 @@ export default function FlowView({
   const selectedId = useApp((s) => s.selectedId);
   const newTaskFrom = useApp((s) => s.newTaskFrom);
   const sweepAt = useApp((s) => s.sweepAt);
-  const { select, setEditorOpen, toggleDependency, toggleDone, quickAdd } =
+  const { select, updateTask, toggleDependency, toggleDone, quickAdd } =
     useApp();
 
   return (
@@ -22,6 +22,7 @@ export default function FlowView({
       <div className="flex items-center gap-3 px-1 pb-2 text-label text-slate-500 flex-wrap">
         <span>the board arranges itself: order left to right, priority top to bottom</span>
         <span>· double-click canvas: new task (quick-add syntax works)</span>
+        <span>· double-click a crocodile: retype its description in place</span>
         <span>· drag ○ → node: dependency</span>
         <span>· click ○ or drag it to empty space: new dependent task</span>
         <span>· click arrow: remove</span>
@@ -32,10 +33,7 @@ export default function FlowView({
         goals={goals}
         selectedId={selectedId}
         onSelect={select}
-        onEdit={(id) => {
-          select(id);
-          setEditorOpen(true);
-        }}
+        onRename={(id, title) => updateTask(id, { title })}
         onToggleDependency={toggleDependency}
         onToggleDone={toggleDone}
         onCreate={(input, dependsOn) => {

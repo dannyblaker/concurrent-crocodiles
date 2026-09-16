@@ -258,10 +258,30 @@ test.describe("the flowchart", () => {
     await quickAdd(page, "Write the report", "Write the report");
     await page.locator("body").click();
 
-    await flowNode(page, "Write the report").dblclick();
+    await flowNode(page, "Write the report").click();
+    await page.keyboard.press("Enter");
     const editor = page.getByRole("complementary").filter({ hasText: "Edit task" });
     await expect(editor).toBeInViewport();
     await expect(editor.getByRole("textbox").first()).toHaveValue("Write the report");
+  });
+
+  test("retypes a description on the crocodile itself", async ({ page }) => {
+    await quickAdd(page, "Write the report", "Write the report");
+    await page.locator("body").click();
+
+    const croc = flowNode(page, "Write the report");
+    await croc.dblclick();
+    const box = croc.getByRole("textbox", { name: "Task description" });
+    await expect(box).toHaveValue("Write the report");
+    await expect(page.getByText("Edit task")).toBeHidden();
+
+    await box.fill("Write the annual report");
+    await page.keyboard.press("Enter");
+    await expect(flowNode(page, "Write the annual report")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Task description" })).toHaveCount(0);
+
+    // and it stuck: the list row says so too
+    await expect(page.locator("[data-task-row]").filter({ hasText: "Write the annual report" })).toBeVisible();
   });
 
   test("creates a task by double-clicking the canvas", async ({ page, planServer }) => {

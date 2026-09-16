@@ -19,6 +19,9 @@ import WaterSurface from "./WaterSurface";
 
 const { W, H, NODE_W, NODE_H } = FLOW;
 
+/** how a description is set on a crocodile's back, whether read or being typed */
+const labelText = "text-label font-medium break-words";
+
 interface TempEdge {
   sourceId: string;
   sx: number;
@@ -32,7 +35,8 @@ interface Props {
   goals: Goal[];
   selectedId?: string | null;
   onSelect?: (id: string) => void;
-  onEdit?: (id: string) => void;
+  /** the description, retyped on the crocodile's back; omitted by the share view */
+  onRename?: (id: string, title: string) => void;
   onToggleDependency?: (taskId: string, depId: string) => void;
   /** omitted by the read-only share view, which draws no done button */
   onToggleDone?: (id: string) => void;
@@ -70,7 +74,7 @@ export default function FlowCanvas({
   goals,
   selectedId,
   onSelect,
-  onEdit,
+  onRename,
   onToggleDependency,
   onToggleDone,
   onCreate,
@@ -88,6 +92,10 @@ export default function FlowCanvas({
     dependsOn?: string;
   } | null>(null);
   const [createText, setCreateText] = useState("");
+  // the label being retyped in place, and what it says so far
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(
+    null
+  );
 
   // Everything derived from the graph is memoised on the tasks, because a move
   // renders this component every frame for a second: the positions change, the
@@ -145,6 +153,8 @@ export default function FlowCanvas({
   // consumed: the next layout is a move like any other. Adjusted during render
   // (like `createFrom` below) so no frame is drawn with the flag still up.
   if (heights.snap) setHeights({ of: heights.of, snap: false });
+  // a task swept or deleted while its label was being retyped takes the edit with it
+  if (editing && !byId.has(editing.id)) setEditing(null);
   // the board is as tall as it needs to be, and at least what it always was
   const boardH = Math.max(
     H,
@@ -297,6 +307,22 @@ export default function FlowCanvas({
     setCreating(null);
   };
 
+  // ── editing in place ───────────────────────────────────────────
+  //
+  // Double-click a crocodile and its label becomes a box on its back, the same
+  // size and type as the label was, so nothing appears to change except that
+  // the caret is there. The crocodile grows around the box as it does around
+  // the label — it is measured the same way — so a longer description makes a
+  // fatter crocodile while it is still being typed.
+  const commitEdit = () => {
+    if (!editing) return;
+    const next = editing.text.trim();
+    const was = byId.get(editing.id)?.title;
+    // a description can't be emptied here: nothing typed means nothing changed
+    if (onRename && next && next !== was) onRename(editing.id, next);
+    setEditing(null);
+  };
+
   // the not-yet-drawn arrow, held while you type the task on the end of it
   const pendingSource = creating?.dependsOn
     ? byId.get(creating.dependsOn)
@@ -411,6 +437,9 @@ export default function FlowCanvas({
           const goal = goals.find((g) => g.id === t.goalId);
           const status = statusOfId.get(t.id)!;
           const done = status === "done";
+          const labelTone = done
+            ? "line-through text-slate-500"
+            : "text-slate-100";
           return (
             <div
               key={t.id}
@@ -424,10 +453,10 @@ export default function FlowCanvas({
                   : undefined
               }
               onDoubleClick={
-                onEdit
+                onRename
                   ? (e) => {
                       e.stopPropagation();
-                      onEdit(t.id);
+                      setEditing({ id: t.id, text: t.title });
                     }
                   : undefined
               }
@@ -464,13 +493,47 @@ export default function FlowCanvas({
                   top: BACK.top,
                 }}
               >
-                <div
-                  className={`text-label font-medium break-words ${
-                    done ? "line-through text-slate-500" : "text-slate-100"
-                  }`}
-                >
-                  {t.title}
-                </div>
+                {editing?.id === t.id ? (
+                  /* Sized by a mirror of its own text in the same grid cell,
+                     so the box is as tall as the words and no taller — and
+                     the label wrapper, which the crocodile is measured from,
+                     grows with it. */
+                  <div className="grid">
+                    <textarea
+                      autoFocus
+                      aria-label="Task description"
+                      rows={1}
+                      value={editing.text}
+                      onChange={(e) =>
+                        setEditing({ id: t.id, text: e.target.value })
+                      }
+                      onFocus={(e) => e.currentTarget.select()}
+                      onBlur={commitEdit}
+                      onKeyDown={(e) => {
+                        e.stopPropagation();
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          commitEdit();
+                        }
+                        if (e.key === "Escape") setEditing(null);
+                      }}
+                      /* typing and selecting text is not a pan, a select or
+                         another double-click on the crocodile underneath */
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onDoubleClick={(e) => e.stopPropagation()}
+                      className={`${labelText} ${labelTone} [grid-area:1/1/2/2] w-full select-text cursor-text bg-transparent border-0 outline-none resize-none p-0 m-0 overflow-hidden caret-lagoon-400`}
+                    />
+                    <div
+                      aria-hidden
+                      className={`${labelText} [grid-area:1/1/2/2] invisible whitespace-pre-wrap`}
+                    >
+                      {editing.text + " "}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`${labelText} ${labelTone}`}>{t.title}</div>
+                )}
                 {/* the small print wraps onto as many rows as it needs.
                     `empty:hidden` so a task with nothing to say drops the row
                     rather than leaving a gap under its title. */}

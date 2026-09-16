@@ -84,13 +84,54 @@ describe("the canvas", () => {
 });
 
 describe("interaction", () => {
-  it("selects on click and opens the editor on double click", async () => {
+  it("selects on click", async () => {
     const user = userEvent.setup();
     renderFlow([makeTask({ id: "a", title: "Write report" })]);
     await user.click(node("Write report"));
     expect(app().selectedId).toBe("a");
+  });
+
+  it("retypes the description on the crocodile itself on double click", async () => {
+    const user = userEvent.setup();
+    renderFlow([makeTask({ id: "a", title: "Write report" })]);
+    const croc = node("Write report");
+    await user.dblClick(croc);
+
+    const box = within(croc).getByRole("textbox", { name: "Task description" });
+    expect(box).toHaveValue("Write report");
+    expect(box).toHaveFocus();
+    // the words stay where they were; the side editor stays shut
+    expect(app().editorOpen).toBe(false);
+
+    await user.keyboard("Write the annual report{Enter}");
+    expect(planTasks()[0].title).toBe("Write the annual report");
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByText("Write the annual report")).toBeInTheDocument();
+  });
+
+  it("puts the old description back on escape", async () => {
+    const user = userEvent.setup();
+    renderFlow([makeTask({ id: "a", title: "Write report" })]);
     await user.dblClick(node("Write report"));
-    expect(app().editorOpen).toBe(true);
+    await user.keyboard("Something else{Escape}");
+    expect(planTasks()[0].title).toBe("Write report");
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    // and the escape stayed on the crocodile: nothing got deselected
+    expect(app().selectedId).toBe("a");
+  });
+
+  it("keeps what was typed when the box loses focus, and never empties a task", async () => {
+    const user = userEvent.setup();
+    renderFlow([makeTask({ id: "a", title: "Write report" })]);
+    await user.dblClick(node("Write report"));
+    await user.keyboard("  Draft it  ");
+    await user.tab();
+    expect(planTasks()[0].title).toBe("Draft it");
+
+    await user.dblClick(node("Draft it"));
+    await user.keyboard("{Backspace}");
+    await user.tab();
+    expect(planTasks()[0].title).toBe("Draft it");
   });
 
   it("marks a task done from its node", async () => {

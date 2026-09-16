@@ -32,7 +32,7 @@ Create tasks and their dependencies. Tasks auto-arrange as their priority and st
 
 ### Editing
 
-- **Canvas-first.** Double-click the canvas to create a task in place. Drag from a node's ○ port to another node to draw a dependency; click an arrow to remove it. Dragging anywhere else pans the board.
+- **Canvas-first.** Double-click the canvas to create a task in place, and double-click a crocodile to retype its description on its back. Drag from a node's ○ port to another node to draw a dependency; click an arrow to remove it. Dragging anywhere else pans the board.
 - **Forward graph construction.** Dragging a ○ into empty space prompts for a description and then draws the arrow to the new task. The `a` key does the same for the selected task, so chains can be built without leaving the keyboard.
 - **Quick-add syntax.** `Fix login bug !1 #deep-work >deploy *waiting-on-bob` sets priority, goal, dependency and blocker in one line. See [Quick-add syntax](#quick-add-syntax).
 - **Priorities P1–P3**, one key each, shown on the crocodile's tail. `s` sorts the to-do queue by priority.
@@ -135,7 +135,7 @@ A typical session:
 | `?` | help overlay |
 | `Esc` | close panels, or deselect |
 
-Pointer actions on the canvas: double-click to create a task · drag ○ onto a node to add a dependency · click ○, or drag it into empty space, to create a dependent task · click an arrow to remove that dependency · drag elsewhere to pan.
+Pointer actions on the canvas: double-click to create a task · double-click a crocodile to edit its description in place (Enter keeps it, Esc discards it) · drag ○ onto a node to add a dependency · click ○, or drag it into empty space, to create a dependent task · click an arrow to remove that dependency · drag elsewhere to pan.
 
 ### Quick-add syntax
 
