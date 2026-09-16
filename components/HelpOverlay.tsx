@@ -33,7 +33,7 @@ const SHORTCUTS: [string, string][] = [
 const SYNTAX: [string, string][] = [
   ["!1 … !3", "priority (P1 = do or die)"],
   ["#deep-work", "goal — created if new"],
-  [">design", "depends on task whose title starts with “design”"],
+  [">design", "depends on task whose description starts with “design”"],
   ["*waiting-on-bob", "blocked, with reason"],
   ["^", "front of the to-do queue"],
 ];
@@ -129,7 +129,7 @@ export default function HelpOverlay() {
           Quick-add syntax
         </h2>
         <p className="text-label text-slate-500 mb-2">
-          Type a title plus any tokens, e.g.{" "}
+          Type a description plus any tokens, e.g.{" "}
           <code className="text-lagoon-300">
             Fix login bug !1 #deep-work &gt;deploy *waiting-on-bob
           </code>

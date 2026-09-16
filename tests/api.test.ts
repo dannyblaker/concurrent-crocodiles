@@ -223,11 +223,14 @@ describe("POST /api/tasks", () => {
         flowX: 300,
         flowY: 120,
         parallel: true,
+        notes: "a second box for words",
       })
     );
     expect(res.status).toBe(201);
     const t = (await stored()).tasks.find((t) => t.title === "From an old export")!;
     expect(t).not.toHaveProperty("duration");
+    // and notes: the description is the one place a task's words go now
+    expect(t).not.toHaveProperty("notes");
     // likewise a canvas position: the board arranges itself
     expect(t).not.toHaveProperty("flowX");
     // and a concurrency flag: the startable column is the answer to that

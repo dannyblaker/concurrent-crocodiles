@@ -394,11 +394,23 @@ describe("loading", () => {
       expect(t).not.toHaveProperty(gone);
   });
 
+  /** Notes were a second box for words. The words survive; the box does not. */
+  it("folds the notes of an older plan into the description", () => {
+    const legacy = {
+      ...makeTask({ id: "old", title: "Ship it" }),
+      notes: "  with care  ",
+    } as unknown as Task;
+    app().load(makePlan([legacy]));
+
+    const t = task("old")!;
+    expect(t.title).toBe("Ship it — with care");
+    expect(t).not.toHaveProperty("notes");
+  });
+
   it("keeps everything the model does have", () => {
     const full = makeTask({
       id: "t",
       title: "Ship it",
-      notes: "with care",
       priority: 1,
       goalId: "g1",
       dependsOn: ["a"],

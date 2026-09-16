@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { dependentsOf } from "./graph";
 import { parseQuickAdd } from "./parse";
+import { described } from "./plan-ops";
 import { GOAL_COLORS, Goal, Plan, Priority, Task, asPriority } from "./types";
 
 const uid = () => crypto.randomUUID().slice(0, 8);
@@ -127,8 +128,7 @@ function isPlan(p: unknown): p is Plan {
 function fromStored(t: Task, i: number): Task {
   return {
     id: t.id,
-    title: t.title,
-    notes: t.notes,
+    title: described(t.title, (t as { notes?: unknown }).notes),
     priority: asPriority(t.priority),
     goalId: t.goalId ?? null,
     dependsOn: [...(t.dependsOn ?? [])],

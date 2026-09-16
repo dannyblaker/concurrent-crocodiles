@@ -18,8 +18,8 @@ export type TaskStatus = "todo" | "in-progress" | "done";
 
 export interface Task {
   id: string;
+  /** The one piece of text a task carries: what it is, and anything worth saying about it. */
   title: string;
-  notes?: string;
   priority: Priority;
   goalId?: string | null;
   dependsOn: string[];

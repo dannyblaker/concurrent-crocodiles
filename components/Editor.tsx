@@ -76,21 +76,11 @@ export default function Editor() {
       </div>
 
       <div>
-        <label className={label}>Title</label>
-        <input
-          className={field}
+        <label className={label}>Task description</label>
+        <textarea
+          className={`${field} h-20 resize-none`}
           value={task.title}
           onChange={(e) => updateTask(task.id, { title: e.target.value })}
-          onKeyDown={(e) => e.stopPropagation()}
-        />
-      </div>
-
-      <div>
-        <label className={label}>Notes</label>
-        <textarea
-          className={`${field} h-16 resize-none`}
-          value={task.notes || ""}
-          onChange={(e) => updateTask(task.id, { notes: e.target.value })}
           onKeyDown={(e) => e.stopPropagation()}
         />
       </div>

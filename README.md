@@ -33,7 +33,7 @@ Create tasks and their dependencies. Tasks auto-arrange as their priority and st
 ### Editing
 
 - **Canvas-first.** Double-click the canvas to create a task in place. Drag from a node's ○ port to another node to draw a dependency; click an arrow to remove it. Dragging anywhere else pans the board.
-- **Forward graph construction.** Dragging a ○ into empty space prompts for a title and then draws the arrow to the new task. The `a` key does the same for the selected task, so chains can be built without leaving the keyboard.
+- **Forward graph construction.** Dragging a ○ into empty space prompts for a description and then draws the arrow to the new task. The `a` key does the same for the selected task, so chains can be built without leaving the keyboard.
 - **Quick-add syntax.** `Fix login bug !1 #deep-work >deploy *waiting-on-bob` sets priority, goal, dependency and blocker in one line. See [Quick-add syntax](#quick-add-syntax).
 - **Priorities P1–P3**, one key each, shown on the crocodile's tail. `s` sorts the to-do queue by priority.
 - **Blockers.** An external reason a task cannot start. A blocked task is held at *to do* however clear its prerequisites are.
@@ -147,11 +147,11 @@ Fix login bug !1 #deep-work >deploy *waiting-on-bob ^
 |---|---|
 | `!1`…`!3` | priority |
 | `#goal` | goal, created if it does not exist |
-| `>prefix` | depends on the task whose title starts with `prefix` |
+| `>prefix` | depends on the task whose description starts with `prefix` |
 | `*reason` | blocked, with a reason |
 | `^` | insert at the front of the to-do queue |
 
-Anything that is not a token becomes part of the title.
+Anything that is not a token becomes the task description.
 
 ## HTTP API
 

@@ -82,8 +82,7 @@ export function normalizePlan(raw: unknown): Plan {
     .filter((t): t is Bag => !!t && typeof t === "object")
     .map((t, i) => ({
       id: typeof t.id === "string" ? t.id : newId(),
-      title: typeof t.title === "string" ? t.title : "",
-      notes: typeof t.notes === "string" ? t.notes : undefined,
+      title: described(typeof t.title === "string" ? t.title : "", t.notes),
       priority: asPriority(num(t.priority)),
       goalId: typeof t.goalId === "string" ? t.goalId : null,
       dependsOn: (Array.isArray(t.dependsOn) ? t.dependsOn : []).filter(
@@ -107,13 +106,24 @@ export function normalizePlan(raw: unknown): Plan {
 const num = (v: unknown): number | null =>
   typeof v === "number" && Number.isFinite(v) ? v : null;
 
+/**
+ * A task used to carry a title and, separately, notes. It now carries one
+ * description, so a document from that time is read with its notes folded into
+ * the title rather than dropped: the words were the user's, and losing them on
+ * open is not the same as no longer having a box for them.
+ */
+export function described(title: string, notes: unknown): string {
+  const extra = typeof notes === "string" ? notes.trim() : "";
+  if (!extra) return title;
+  return title.trim() ? `${title.trim()} — ${extra}` : extra;
+}
+
 /* --------------------------------------------------------------- input --- */
 
 /** Fields a caller may set. */
 const WRITABLE = new Set([
   "id",
   "title",
-  "notes",
   "priority",
   "goalId",
   "goal",
@@ -137,7 +147,7 @@ const DERIVED = new Set(["status", "depth", "dependents", "goalName"]);
  * document this app has ever exported has to be one it will take back, so a
  * field it can't place costs the field and not the whole request.
  */
-const RETIRED = new Set(["duration", "flowX", "flowY", "parallel"]);
+const RETIRED = new Set(["duration", "flowX", "flowY", "notes", "parallel"]);
 
 export function asObject(v: unknown, label: string): Bag {
   if (!v || typeof v !== "object" || Array.isArray(v))
@@ -199,12 +209,6 @@ function coerceTask(
     else t.title = bag.title.trim();
   } else if (!base) {
     p.add(`${label}: title is required`);
-  }
-
-  if ("notes" in bag) {
-    if (bag.notes == null) t.notes = undefined;
-    else if (typeof bag.notes !== "string") p.add(`${label}: notes must be a string`);
-    else t.notes = bag.notes;
   }
 
   // 4 is taken but not kept: the app has three levels, and a document naming a

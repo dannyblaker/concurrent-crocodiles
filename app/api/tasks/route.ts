@@ -44,7 +44,7 @@ function body(plan: Plan, tasks: TaskView[] = taskViews(plan.tasks)) {
 
 /**
  * Filters, all optional and all ANDed:
- *   ?status=in-progress,todo   ?goal=<id or name>   ?q=<title/notes substring>
+ *   ?status=in-progress,todo   ?goal=<id or name>   ?q=<title substring>
  *   ?done=true   ?blocked=true   ?dependsOn=<id>   ?blocking=<id>
  */
 function filtered(plan: Plan, url: URL): TaskView[] {
@@ -75,11 +75,7 @@ function filtered(plan: Plan, url: URL): TaskView[] {
   const q = param("q");
   if (q) {
     const needle = q.toLowerCase();
-    views = views.filter(
-      (t) =>
-        t.title.toLowerCase().includes(needle) ||
-        (t.notes ?? "").toLowerCase().includes(needle)
-    );
+    views = views.filter((t) => t.title.toLowerCase().includes(needle));
   }
 
   for (const [name, pick] of [
