@@ -70,9 +70,9 @@ Create tasks and their dependencies. Tasks auto-arrange as their priority and st
 docker compose up -d --build
 ```
 
-The application is served at <http://localhost:3000>. Compose starts the app together with PostgreSQL 16; the plan is stored in the `pgdata` named volume and survives restarts, rebuilds and `docker compose down`. Only `docker compose down -v` removes it. Rebuild with the same command after pulling changes.
+The application is served at <http://localhost:3001>. Compose starts the app together with PostgreSQL 16; the plan is stored in the `pgdata` named volume and survives restarts, rebuilds and `docker compose down`. Only `docker compose down -v` removes it. Rebuild with the same command after pulling changes.
 
-The live-share view is reachable by anyone who can reach the host: `http://<host>:3000/share/<token>`.
+The live-share view is reachable by anyone who can reach the host: `http://<host>:3001/share/<token>`.
 
 ### Local development
 
